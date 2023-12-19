@@ -41,12 +41,18 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 				<logger level="INFO" doc:name="Logger" doc:id="d23fcd54-0ef4-40ad-a03a-aa671a743b89" message='#["Insertion is complete"]' />
 			</when>
 			<when expression='upper(vars.method) == "GET"'>
-				<db:select doc:name="Select" doc:id="dce299fa-9faf-4328-bb45-3eb5d039f90f" config-ref="Database_Config1">
-					<db:sql ><![CDATA[Select * from student;]]></db:sql>
+				<choice doc:name="Choice" doc:id="514280ce-7d51-4e95-8e1d-aaa43fd5e08c">
+					<when expression="#[!isEmpty(vars.id)]">
+						<db:select doc:name="Select" doc:id="dce299fa-9faf-4328-bb45-3eb5d039f90f" config-ref="Database_Config1">
+					<db:sql><![CDATA[Select * from student where id=:id;]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	id:vars.id
+	
+}]]]></db:input-parameters>
 				</db:select>
-				<ee:transform doc:name="Transform Message" doc:id="126b0a55-9849-4774-a7d8-19fd2ee630e2" >
-					<ee:message >
-						<ee:set-payload ><![CDATA[%dw 2.0
+						<ee:transform doc:name="Transform Message" doc:id="126b0a55-9849-4774-a7d8-19fd2ee630e2">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 payload map ((item, index) -> {
@@ -56,6 +62,65 @@ payload map ((item, index) -> {
 })]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+					</when>
+					<when expression="#[!isEmpty(vars.gender)]">
+						<db:select doc:name="Select" doc:id="61f704d1-2a48-4c14-9cb1-10131aa3c0ef" config-ref="Database_Config1" >
+							<db:sql ><![CDATA[Select * from student where gender=:gender;]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	gender:upper(vars.gender)
+}]]]></db:input-parameters>
+						</db:select>
+						<ee:transform doc:name="Transform Message" doc:id="b8f8a4cf-2731-420a-bf62-4a3239bbfde7" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"Name":item.name,
+	"Age":item.age,
+	"Gender":item.gender
+})]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<when expression="#[!isEmpty(vars.age)]">
+						<db:select doc:name="Select" doc:id="c8e9cacf-90eb-4c9c-9051-14264ce4ea7f" config-ref="Database_Config1" >
+							<db:sql ><![CDATA[Select * from student where age=:age;]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	age:upper(vars.age)
+}]]]></db:input-parameters>
+						</db:select>
+						<ee:transform doc:name="Transform Message" doc:id="43c823bc-a577-407d-aada-1ceb90c23996" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"Name":item.name,
+	"Age":item.age,
+	"Gender":item.gender
+})]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<otherwise >
+						<db:select doc:name="Select" doc:id="3d61f9a1-4797-446d-83b6-d9f3a9465a5a" config-ref="Database_Config1">
+							<db:sql><![CDATA[Select * from student;]]></db:sql>
+						</db:select>
+						<ee:transform doc:name="Transform Message" doc:id="1e03a5df-6148-4b59-beea-be020b83a7d2">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"Name":item.name,
+	"Age":item.age,
+	"Gender":item.gender
+})]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
 			</when>
 			<when expression='upper(vars.method) == "PUT"'>
 				<db:update doc:name="Update" doc:id="1c4998d7-8a14-4ff9-8c59-4ec3b2a7767d" config-ref="Database_Config2">
