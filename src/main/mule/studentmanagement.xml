@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="939622fc-007e-4e67-9abf-7c83f1dbec38" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="f803c6e8-098a-4406-bb6e-9f0f737141cd" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="admin" database="muledb" />
+	</db:config>
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="a7a9daed-b501-4299-84a7-d419ad6a9360" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="admin" database="muledb" />
+	</db:config>
+	<db:config name="Database_Config2" doc:name="Database Config" doc:id="29baa3b0-60a0-4e97-8362-cb10171f2a22" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="admin" database="muledb" />
+	</db:config>
+	<db:config name="Database_Config3" doc:name="Database Config" doc:id="fbeb5a34-008e-459f-b65b-83d1c5c45c8f" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="admin" database="muledb" />
+	</db:config>
+	<flow name="studentmanagementFlow" doc:id="6bc5074c-2836-49a3-b514-e69c5fb10a79" >
+		<http:listener doc:name="Listener" doc:id="7ddcef01-ce82-4bcd-8c5d-c530f0f2cd7c" config-ref="HTTP_Listener_config" path="/student"/>
+		<set-variable value="#[payload]" doc:name="studentinfo" doc:id="6e89982b-e4c9-4f71-8e4f-0bbe94ca18de" variableName="info"/>
+		<set-variable value="#[attributes.method]" doc:name="method" doc:id="e55d463c-a81e-4f43-9079-b50a2e636c43" variableName="method"/>
+		<set-variable value="#[attributes.queryParams.id]" doc:name="queryparams-id" doc:id="29fb5b20-3fab-49b5-a9fb-17dccb036e6e" variableName="id"/>
+		<set-variable value="#[attributes.queryParams.gender]" doc:name="queryparams-gender" doc:id="f83a5830-fa32-4c62-8350-c430e7980c15" variableName="gender"/>
+		<set-variable value="#[attributes.queryParams.minAge]" doc:name="queryparams-age" doc:id="4392d207-3f5d-43e8-b0f7-5bb0591161ff" variableName="age"/>
+		<choice doc:name="Choice" doc:id="634f55f4-c2b7-47c9-ae3c-008898403e5d" >
+			<when expression='#[upper(vars.method) == "POST"]'>
+				<db:insert doc:name="Insert" doc:id="5c51a474-83d1-49f1-aea6-d60d2f090b5b" config-ref="Database_Config">
+			<db:sql><![CDATA[Insert into student(name,age,gender) values (:name,:age,:gender);]]></db:sql>
+			<db:input-parameters><![CDATA[#[{	
+	name:payload.name,
+	age:payload.age,
+	gender:payload.gender
+}]]]></db:input-parameters>
+		</db:insert>
+				<logger level="INFO" doc:name="Logger" doc:id="d23fcd54-0ef4-40ad-a03a-aa671a743b89" message='#["Insertion is complete"]' />
+			</when>
+			<when expression='upper(vars.method) == "GET"'>
+				<db:select doc:name="Select" doc:id="dce299fa-9faf-4328-bb45-3eb5d039f90f" config-ref="Database_Config1">
+					<db:sql ><![CDATA[Select * from student;]]></db:sql>
+				</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="126b0a55-9849-4774-a7d8-19fd2ee630e2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"Name":item.name,
+	"Age":item.age,
+	"Gender":item.gender
+})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='upper(vars.method) == "PUT"'>
+				<db:update doc:name="Update" doc:id="1c4998d7-8a14-4ff9-8c59-4ec3b2a7767d" config-ref="Database_Config2">
+					<db:sql ><![CDATA[update student set name=:name, age=:age , gender=:gender where id=:id;]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{	
+	id:vars.id,
+	name:payload.name,
+	age:payload.age,
+	gender:payload.gender
+}]]]></db:input-parameters>
+				</db:update>
+				<logger level="INFO" doc:name="Logger" doc:id="18057183-4a1e-408f-adf4-93e88590f98d" message='#["Updation Completed"]'/>
+			
+			</when>
+			<when expression='#[upper(vars.method) == "DELETE"]'>
+				<db:delete doc:name="Delete" doc:id="cbf4f78c-ce68-4a5a-abed-c226b1cee378" config-ref="Database_Config3">
+					<db:sql ><![CDATA[Delete from student where id=:id;]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	id:vars.id,
+}]]]></db:input-parameters>
+				</db:delete>
+				<logger level="INFO" doc:name="Logger" doc:id="5a8be274-8ded-45f9-8b03-5570d568c136" message='#["Data Deleted"]'/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="c8a12f6a-731a-48e9-ac7b-2af6b287e41c" message='#["No correct Method called"]'/>
+			</otherwise>
+		</choice>
+	</flow>
+	
+</mule>
